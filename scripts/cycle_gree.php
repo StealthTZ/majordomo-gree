@@ -1,7 +1,7 @@
 <?php
 /**
  * gree polling cycle
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 chdir(dirname(__FILE__) . '/../');
@@ -49,11 +49,30 @@ foreach ($intervals as $key => $seconds) {
 $onetime = (isset($argv) && is_array($argv) && in_array('onetime', $argv, true))
     || isset($_GET['onetime']);
 
+// polling intervals actually used by devices, re-read every 30 s so that
+// unused intervals cost no database query at all
+$used = array();
+$used_checked = 0;
+
 while (1) {
     setGlobal($cycle_name . 'Run', time(), 1);
 
     $now = time();
+    if ($now - $used_checked >= 30) {
+        $used = array();
+        $rows = SQLSelect("SELECT DISTINCT CHTIME FROM gree_devices");
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                $used[$row['CHTIME']] = 1;
+            }
+        }
+        $used_checked = $now;
+    }
+
     foreach ($intervals as $key => $seconds) {
+        if (!isset($used[$key])) {
+            continue;
+        }
         if ($now >= $next_run[$key]) {
             // skip the periods missed while a slow poll was running
             $next_run[$key] = $now + $seconds;
