@@ -1,6 +1,6 @@
 <?php
 /*
-* @version 1.0.2
+* @version 1.0.3
 */
 if (isset($this->owner) && is_object($this->owner) && isset($this->owner->name) && $this->owner->name == 'panel') {
     $out['CONTROLPANEL'] = 1;
@@ -220,6 +220,16 @@ if ($this->tab == 'data' || $this->tab == 'data_usage') {
                 ($old_linked_object != $properties[$i]['LINKED_OBJECT'] || $old_linked_property != $properties[$i]['LINKED_PROPERTY'])
             ) {
                 removeLinkedProperty($old_linked_object, $old_linked_property, $this->name);
+            }
+
+            // New or changed link: push the current value, later only changes are sent
+            if ($properties[$i]['LINKED_OBJECT'] != '' && $properties[$i]['LINKED_PROPERTY'] != ''
+                && (string)$properties[$i]['VALUE'] !== ''
+                && ($old_linked_object != $properties[$i]['LINKED_OBJECT'] || $old_linked_property != $properties[$i]['LINKED_PROPERTY'])
+            ) {
+                sg($properties[$i]['LINKED_OBJECT'] . '.' . $properties[$i]['LINKED_PROPERTY'],
+                    gree::toLinkedValue($properties[$i]['TITLE'], $properties[$i]['LINKED_PROPERTY'], $properties[$i]['VALUE']),
+                    array($this->name => 1));
             }
         }
 

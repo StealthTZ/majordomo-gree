@@ -3,7 +3,7 @@
  * GREE: Gree and Cooper&Hunter air conditioners for MajorDoMo
  *
  * @package majordomo-gree
- * @version 1.0.2 (PHP 7.0 - 8.4)
+ * @version 1.0.3 (PHP 7.0 - 8.4)
  */
 if (!function_exists('gree_json')) {
     /**
@@ -71,6 +71,40 @@ class gree extends module
             'stht' => 'set_stht',
         ),
     );
+
+    /** Gree code <=> SAirConditioners value for links to thermostat/fanSpeed */
+    private static $LINK_MAP = array(
+        'ac_mode' => array('thermostat', array(0 => 'auto', 1 => 'cool', 2 => 'dry', 3 => 'fan_only', 4 => 'heat')),
+        'fan_speed' => array('fanSpeed', array(0 => 'auto', 1 => 'low', 2 => 'medium', 3 => 'medium', 4 => 'medium', 5 => 'high', 6 => 'high', 8 => 'high')),
+    );
+    private static $LINK_REVERSE = array(
+        'ac_mode' => array('auto' => 0, 'cool' => 1, 'dry' => 2, 'fan_only' => 3, 'heat' => 4),
+        'fan_speed' => array('auto' => 0, 'low' => 1, 'medium' => 3, 'high' => 5),
+    );
+
+    /** Device value -> value for the linked object property */
+    public static function toLinkedValue($title, $linked_property, $value)
+    {
+        if (isset(self::$LINK_MAP[$title]) && $linked_property == self::$LINK_MAP[$title][0] && is_numeric($value)) {
+            $map = self::$LINK_MAP[$title][1];
+            if (isset($map[(int)$value])) {
+                return $map[(int)$value];
+            }
+        }
+        return $value;
+    }
+
+    /** Linked object property value -> device value */
+    public static function fromLinkedValue($title, $linked_property, $value)
+    {
+        if (isset(self::$LINK_REVERSE[$title]) && $linked_property == self::$LINK_MAP[$title][0] && !is_numeric($value)) {
+            $key = strtolower(trim((string)$value));
+            if (isset(self::$LINK_REVERSE[$title][$key])) {
+                return self::$LINK_REVERSE[$title][$key];
+            }
+        }
+        return $value;
+    }
 
     /** polling interval code => seconds */
     public static $INTERVALS = array(
@@ -440,11 +474,16 @@ class gree extends module
             }
 
             $method = self::$HANDLERS[$family][$title];
-            if (!$rm->$method($value)) {
-                DebMes('gree: ' . $rec['TITLE'] . ' ' . $title . '=' . $value . ' failed (' . $rm->lastError() . ')', 'error');
+            $device_value = self::fromLinkedValue($title, $property, $value);
+            if (!is_numeric($device_value) && isset(self::$LINK_REVERSE[$title])) {
+                DebMes('gree: ' . $rec['TITLE'] . ' unknown ' . $title . ' value "' . $value . '", skipped', 'error');
+                continue;
+            }
+            if (!$rm->$method($device_value)) {
+                DebMes('gree: ' . $rec['TITLE'] . ' ' . $title . '=' . $device_value . ' failed (' . $rm->lastError() . ')', 'error');
             }
 
-            $prop['VALUE'] = $value;
+            $prop['VALUE'] = $device_value;
             SQLUpdate($table, $prop);
             $handled = true;
         }
@@ -732,7 +771,8 @@ class gree extends module
             if ($record['LINKED_OBJECT'] != '' && $record['LINKED_PROPERTY'] != '') {
                 // exclude this module from the linked modules chain, otherwise a value
                 // read from the device is immediately written back to it
-                sg($record['LINKED_OBJECT'] . '.' . $record['LINKED_PROPERTY'], $val, array($this->name => 1));
+                sg($record['LINKED_OBJECT'] . '.' . $record['LINKED_PROPERTY'],
+                    self::toLinkedValue($prop, $record['LINKED_PROPERTY'], $val), array($this->name => 1));
             }
         }
     }
@@ -764,7 +804,7 @@ class gree extends module
                 // read from the device is immediately written back to it
                 sg(
                     $record['LINKED_OBJECT'] . '.' . $record['LINKED_PROPERTY'],
-                    is_null($sg_val) ? $val : $sg_val,
+                    is_null($sg_val) ? self::toLinkedValue($prop, $record['LINKED_PROPERTY'], $val) : $sg_val,
                     array($this->name => 1)
                 );
             }
