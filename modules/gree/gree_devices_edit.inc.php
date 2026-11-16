@@ -1,6 +1,6 @@
 <?php
 /*
-* @version 1.0.0
+* @version 1.0.1
 */
 if (isset($this->owner) && is_object($this->owner) && isset($this->owner->name) && $this->owner->name == 'panel') {
     $out['CONTROLPANEL'] = 1;
@@ -181,6 +181,8 @@ if ($this->tab == 'data' || $this->tab == 'data_usage') {
 
     paging($properties, 20, $out);
 
+    $meta = gree::propertyMeta();
+    $family = isset($rec['TYPE']) ? $rec['TYPE'] : '';
     $total = count($properties);
     for ($i = 0; $i < $total; $i++) {
         if ($this->mode == 'update') {
@@ -227,10 +229,8 @@ if ($this->tab == 'data' || $this->tab == 'data_usage') {
 
         $properties[$i]['DEVTYPE'] = isset($rec['TYPE']) ? $rec['TYPE'] : '';
 
-        $meta = gree::propertyMeta();
         $code = $properties[$i]['TITLE'];
         $properties[$i]['LABEL'] = isset($meta[$code]) ? $meta[$code]['label'] : '';
-        $family = isset($rec['TYPE']) ? $rec['TYPE'] : '';
         $properties[$i]['READONLY'] = $this->isWritable($family, $code) ? 0 : 1;
         $value_text = (string)$properties[$i]['VALUE'];
         if (isset($meta[$code]['options'][$value_text])) {

@@ -3,7 +3,7 @@
  * GREE: Gree and Cooper&Hunter air conditioners for MajorDoMo
  *
  * @package majordomo-gree
- * @version 1.0.0 (PHP 7.0 - 8.4)
+ * @version 1.0.1 (PHP 7.0 - 8.4)
  */
 if (!function_exists('gree_json')) {
     /**
@@ -522,9 +522,7 @@ class gree extends module
             return 'устройство не отвечает (' . $rm->lastError() . ')';
         }
 
-        foreach ($response as $key => $value) {
-            $this->table_data_set($key, (int)$rec['ID'], $value);
-        }
+        $this->publish_state((int)$rec['ID'], $response);
 
         SQLExec("UPDATE gree_devices SET UPDATED='" . date('Y-m-d H:i:s') . "' WHERE ID=" . (int)$rec['ID']);
         return '';
@@ -578,19 +576,31 @@ class gree extends module
         if (!is_array($devices)) {
             return array();
         }
-        $result = array();
+        // properties of every listed device in one query
+        $ids = array();
         foreach ($devices as $rec) {
-            $props = array();
-            $links = array();
-            $rows = SQLSelect("SELECT TITLE, VALUE, LINKED_OBJECT, LINKED_PROPERTY FROM gree_properties WHERE DEVICE_ID=" . (int)$rec['ID']);
+            $ids[] = (int)$rec['ID'];
+        }
+        $props_by_device = array();
+        $links_by_device = array();
+        if (count($ids)) {
+            $rows = SQLSelect("SELECT DEVICE_ID, TITLE, VALUE, LINKED_OBJECT, LINKED_PROPERTY FROM gree_properties"
+                . " WHERE DEVICE_ID IN (" . implode(',', $ids) . ")");
             if (is_array($rows)) {
                 foreach ($rows as $row) {
-                    $props[$row['TITLE']] = $row['VALUE'];
+                    $dev = (int)$row['DEVICE_ID'];
+                    $props_by_device[$dev][$row['TITLE']] = $row['VALUE'];
                     if ($row['LINKED_OBJECT'] != '') {
-                        $links[$row['TITLE']] = $row['LINKED_OBJECT'] . '.' . $row['LINKED_PROPERTY'];
+                        $links_by_device[$dev][$row['TITLE']] = $row['LINKED_OBJECT'] . '.' . $row['LINKED_PROPERTY'];
                     }
                 }
             }
+        }
+
+        $result = array();
+        foreach ($devices as $rec) {
+            $props = isset($props_by_device[(int)$rec['ID']]) ? $props_by_device[(int)$rec['ID']] : array();
+            $links = isset($links_by_device[(int)$rec['ID']]) ? $links_by_device[(int)$rec['ID']] : array();
             $updated = (isset($rec['UPDATED']) && $rec['UPDATED'] != '' && strpos($rec['UPDATED'], '0000') !== 0)
                 ? strtotime($rec['UPDATED']) : 0;
             $interval = isset(self::$INTERVALS[$rec['CHTIME']]) ? self::$INTERVALS[$rec['CHTIME']] : 60;
@@ -674,6 +684,57 @@ class gree extends module
         header('Cache-Control: no-store');
         echo json_encode($res);
         exit;
+    }
+
+    /**
+     * Store a whole poll result: one SELECT for the device, writes only for
+     * properties whose value changed.
+     *
+     * @param int   $dev_id
+     * @param array $values property => value
+     */
+    function publish_state($dev_id, $values)
+    {
+        $dev_id = (int)$dev_id;
+        if (!$dev_id || !is_array($values) || !count($values)) {
+            return;
+        }
+
+        $existing = array();
+        $rows = SQLSelect("SELECT * FROM gree_properties WHERE DEVICE_ID=" . $dev_id);
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                if (!isset($existing[$row['TITLE']])) {
+                    $existing[$row['TITLE']] = $row;
+                }
+            }
+        }
+
+        foreach ($values as $prop => $val) {
+            if (!isset($existing[$prop])) {
+                $new = array(
+                    'TITLE' => $prop,
+                    'DEVICE_ID' => $dev_id,
+                    'VALUE' => $val,
+                    'LINKED_OBJECT' => '',
+                    'LINKED_PROPERTY' => '',
+                    'LINKED_METHOD' => '',
+                );
+                SQLInsert('gree_properties', $new); // takes the record by reference
+                continue;
+            }
+            $record = $existing[$prop];
+            if ((string)$val === (string)$record['VALUE']) {
+                continue;
+            }
+            $record['VALUE'] = $val;
+            SQLUpdate('gree_properties', $record);
+            if ($record['LINKED_OBJECT'] != '' && $record['LINKED_PROPERTY'] != '') {
+                // exclude this module from the linked modules chain, otherwise a value
+                // read from the device is immediately written back to it
+                sg($record['LINKED_OBJECT'] . '.' . $record['LINKED_PROPERTY'], $val, array($this->name => 1));
+            }
+        }
     }
 
     /**

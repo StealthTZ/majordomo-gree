@@ -10,7 +10,7 @@
  *   https://github.com/tomikaa87/gree-remote
  *   https://github.com/cmroche/greeclimate
  *
- * @version 1.0.0 (PHP 7.0 - 8.4)
+ * @version 1.0.1 (PHP 7.0 - 8.4)
  */
 
 if (!class_exists('GreeDevice', false)) {
@@ -25,8 +25,8 @@ if (!class_exists('GreeDevice', false)) {
         protected $mac = array();
         /** @var string device AES key */
         protected $keys = '';
-        /** @var int socket timeout, seconds */
-        protected $timeout = 5;
+        /** @var int socket timeout, seconds. Units answer within a fraction of a second on a LAN */
+        protected $timeout = 2;
         /** @var int */
         protected $count = 0;
         /** @var array */
@@ -52,6 +52,12 @@ if (!class_exists('GreeDevice', false)) {
         const CH_PORT = 12416;
 
         const BROADCAST_ADDR = '255.255.255.255';
+
+        /** minimal pause between broadcast retries for one unit, seconds */
+        const BROADCAST_RETRY = 300;
+
+        /** @var array MAC => time of the last broadcast retry (lives as long as the process) */
+        protected static $broadcast_tried = array();
 
         /**
          * @param string       $h host (IP address)
@@ -495,20 +501,30 @@ if (!class_exists('GreeDevice', false)) {
                 if (isset($found[$mac])) {
                     continue;
                 }
-                $found[$mac] = 1;
-
-                $keys = self::pair($mac, $from, $encryption);
-
-                $device = self::CreateDevice($from, $mac, 0x2711, (string)$keys, $encryption);
-                if ($device === null) {
-                    continue;
-                }
-                $device->name = isset($pack['name']) ? (string)$pack['name'] : '';
-                $devices[] = $device;
+                $found[$mac] = array(
+                    'mac' => $mac,
+                    'ip' => $from,
+                    'encryption' => $encryption,
+                    'name' => isset($pack['name']) ? (string)$pack['name'] : '',
+                );
             }
 
             @socket_shutdown($cs, 2);
             @socket_close($cs);
+
+            // bind every unit at once: one round per cipher instead of one exchange per unit
+            $bound = self::pairMany(array_values($found));
+
+            foreach ($found as $mac => $info) {
+                $key = isset($bound[$mac]) ? $bound[$mac]['key'] : '';
+                $enc = isset($bound[$mac]) ? $bound[$mac]['encryption'] : $info['encryption'];
+                $device = self::CreateDevice($info['ip'], $mac, 0x2711, $key, $enc);
+                if ($device === null) {
+                    continue;
+                }
+                $device->name = $info['name'];
+                $devices[] = $device;
+            }
 
             return $devices;
         }
@@ -867,8 +883,103 @@ if (!class_exists('GreeDevice', false)) {
         }
 
         /**
+         * Bind several units in parallel. Every unit is asked with its preferred cipher
+         * first and with the other one in a second round, so the whole scan takes at
+         * most two timeouts regardless of the number of units.
+         *
+         * @param array $units list of array('mac' => ..., 'ip' => ..., 'encryption' => ...)
+         * @param int   $timeout seconds per round
+         * @return array MAC => array('key' => ..., 'encryption' => ...)
+         */
+        public static function pairMany($units, $timeout = 3)
+        {
+            $result = array();
+            if (!is_array($units) || !count($units) || !function_exists('socket_create')) {
+                return $result;
+            }
+
+            $pending = array();
+            foreach ($units as $unit) {
+                if (empty($unit['mac']) || empty($unit['ip'])) {
+                    continue;
+                }
+                $first = self::normalizeEncryption(isset($unit['encryption']) ? $unit['encryption'] : 'ECB');
+                $pending[$unit['mac']] = array(
+                    'ip' => $unit['ip'],
+                    'modes' => array($first, $first === 'GCM' ? 'ECB' : 'GCM'),
+                );
+            }
+
+            for ($round = 0; $round < 2 && count($pending); $round++) {
+                $cs = @socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+                if ($cs === false) {
+                    break;
+                }
+                @socket_set_option($cs, SOL_SOCKET, SO_REUSEADDR, 1);
+                @socket_set_option($cs, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 1, 'usec' => 0));
+                if (!@socket_bind($cs, '0.0.0.0', 0)) {
+                    @socket_close($cs);
+                    break;
+                }
+
+                $by_ip = array();
+                foreach ($pending as $mac => $unit) {
+                    $mode = $unit['modes'][$round];
+                    if ($mode === 'GCM' && !self::gcmAvailable()) {
+                        continue;
+                    }
+                    $generic = ($mode === 'GCM') ? self::DEFAULT_GCM_KEY : self::DEFAULT_KEY;
+                    $pack_json = json_encode(array('mac' => (string)$mac, 't' => 'bind', 'uid' => 0));
+                    $request = self::buildEnvelope($pack_json, $mac, $generic, $mode, 1);
+                    if ($request === '') {
+                        continue;
+                    }
+                    if (@socket_sendto($cs, $request, strlen($request), 0, $unit['ip'], self::GREE_PORT) !== false) {
+                        $by_ip[$unit['ip']][] = array('mac' => $mac, 'mode' => $mode, 'key' => $generic);
+                    }
+                }
+
+                $deadline = microtime(true) + max(1, (int)$timeout);
+                $waiting = 0;
+                foreach ($by_ip as $list) {
+                    $waiting += count($list);
+                }
+
+                while ($waiting > 0 && microtime(true) < $deadline) {
+                    $raw = '';
+                    $from = '';
+                    $port = 0;
+                    $bytes = @socket_recvfrom($cs, $raw, 4096, 0, $from, $port);
+                    if ($bytes === false || $bytes <= 0) {
+                        continue; // 1 s receive timeout, keep waiting until the deadline
+                    }
+                    if (!isset($by_ip[$from])) {
+                        continue;
+                    }
+                    foreach ($by_ip[$from] as $i => $ask) {
+                        $pack = self::parseEnvelope($raw, $ask['key']);
+                        if (is_array($pack) && isset($pack['key']) && is_string($pack['key']) && $pack['key'] !== ''
+                            && (!isset($pack['t']) || strtolower((string)$pack['t']) === 'bindok')
+                            && (!isset($pack['r']) || (int)$pack['r'] === 200)
+                        ) {
+                            $result[$ask['mac']] = array('key' => (string)$pack['key'], 'encryption' => $ask['mode']);
+                            unset($pending[$ask['mac']], $by_ip[$from][$i]);
+                            $waiting--;
+                            break;
+                        }
+                    }
+                }
+
+                @socket_close($cs);
+            }
+
+            return $result;
+        }
+
+        /**
          * Send an inner pack to this device and return the decoded answer.
-         * Unicast first, broadcast as a fallback (device may have changed its IP).
+         * Unicast first. A broadcast retry finds a unit that changed its IP, but it costs
+         * another timeout, so for one unit it is tried at most every BROADCAST_RETRY s.
          *
          * @param array $pack
          * @return array|null
@@ -897,7 +1008,11 @@ if (!class_exists('GreeDevice', false)) {
                 $raw = self::udpRequest($this->host, $request, $this->timeout);
             }
             if ($raw === '') {
-                $raw = self::udpRequest(self::BROADCAST_ADDR, $request, $this->timeout, true);
+                $last = isset(self::$broadcast_tried[$devmac]) ? self::$broadcast_tried[$devmac] : 0;
+                if (time() - $last >= self::BROADCAST_RETRY) {
+                    self::$broadcast_tried[$devmac] = time();
+                    $raw = self::udpRequest(self::BROADCAST_ADDR, $request, $this->timeout, true);
+                }
             }
             if ($raw === '') {
                 $this->last_error = 'no answer from ' . $this->host;
