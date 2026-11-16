@@ -1,7 +1,7 @@
 <?php
 /**
  * gree polling cycle
- * @version 1.0.1
+ * @version 1.0.2
  */
 
 chdir(dirname(__FILE__) . '/../');
