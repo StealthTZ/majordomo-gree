@@ -1,6 +1,6 @@
 <?php
 /*
-* @version 1.0.1
+* @version 1.0.2
 */
 if (isset($this->owner) && is_object($this->owner) && isset($this->owner->name) && $this->owner->name == 'panel') {
     $out['CONTROLPANEL'] = 1;

@@ -10,7 +10,7 @@
  *   https://github.com/tomikaa87/gree-remote
  *   https://github.com/cmroche/greeclimate
  *
- * @version 1.0.1 (PHP 7.0 - 8.4)
+ * @version 1.0.2 (PHP 7.0 - 8.4)
  */
 
 if (!class_exists('GreeDevice', false)) {

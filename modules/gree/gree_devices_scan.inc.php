@@ -1,7 +1,7 @@
 <?php
 /*
 * Network scan for Gree and Cooper&Hunter air conditioners
-* @version 1.0.0
+* @version 1.0.2
 */
 include_once(DIR_MODULES . 'gree/gree_device.class.php');
 

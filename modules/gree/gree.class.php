@@ -3,7 +3,7 @@
  * GREE: Gree and Cooper&Hunter air conditioners for MajorDoMo
  *
  * @package majordomo-gree
- * @version 1.0.1 (PHP 7.0 - 8.4)
+ * @version 1.0.2 (PHP 7.0 - 8.4)
  */
 if (!function_exists('gree_json')) {
     /**
@@ -796,6 +796,15 @@ class gree extends module
      */
     function uninstall()
     {
+        // Unlink object properties before dropping the tables
+        if (SQLSelectOne("SHOW TABLES LIKE 'gree_properties'")) {
+            $properties = SQLSelect("SELECT LINKED_OBJECT, LINKED_PROPERTY FROM gree_properties WHERE LINKED_OBJECT<>'' AND LINKED_PROPERTY<>''");
+            if (is_array($properties)) {
+                foreach ($properties as $property) {
+                    removeLinkedProperty($property['LINKED_OBJECT'], $property['LINKED_PROPERTY'], $this->name);
+                }
+            }
+        }
         SQLExec('DROP TABLE IF EXISTS gree_devices');
         SQLExec('DROP TABLE IF EXISTS gree_properties');
         parent::uninstall();
