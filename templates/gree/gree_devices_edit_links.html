@@ -1,0 +1,67 @@
+<!-- links of device properties to MajorDoMo objects -->
+<form action="?" method="post" enctype="multipart/form-data" name="frmEdit" class="gree-form gree-form--wide">
+[#if OK#]<div class="gree-alert gree-alert--ok">Привязки сохранены.</div>[#endif OK#]
+
+<div class="gree-panel gree-panel--flush">
+ <div class="gree-panel__head">
+  <h3 class="gree-panel__title">Свойства кондиционера</h3>
+  <p class="gree-hint">Свяжите свойство с объектом MajorDoMo: значения с кондиционера попадут в объект, а изменение свойства объекта отправит команду на кондиционер. Свойства с отметкой «чтение» только отображают состояние.</p>
+ </div>
+ [#if PAGES#]
+ <div class="gree-pager">
+  [#begin PREVPAGE#]<a href="?data_source=<#DATA_SOURCE#>&view_mode=<#VIEW_MODE#>&id=<#ID#>&tab=<#TAB#>&save_qry=1&page=[#NUM#]">‹</a>[#end PREVPAGE#]
+  [#begin PAGES#][#if SELECTED#]<b>[#NUM#]</b>[#else#]<a href="?data_source=<#DATA_SOURCE#>&view_mode=<#VIEW_MODE#>&id=<#ID#>&tab=<#TAB#>&save_qry=1&page=[#NUM#]">[#NUM#]</a>[#endif#][#end PAGES#]
+  [#begin NEXTPAGE#]<a href="?data_source=<#DATA_SOURCE#>&view_mode=<#VIEW_MODE#>&id=<#ID#>&tab=<#TAB#>&save_qry=1&page=[#NUM#]">›</a>[#end NEXTPAGE#]
+ </div>
+ [#endif PAGES#]
+ [#if PROPERTIES#]
+ <div class="gree-table-wrap">
+ <table class="gree-table">
+  <thead>
+   <tr><th>Свойство</th><th>Значение</th><th>Объект</th><th>Свойство объекта</th><th>Метод</th><th></th></tr>
+  </thead>
+  <tbody>
+  [#begin PROPERTIES#]
+   <tr>
+    <td class="gree-table__prop">
+     <input type="hidden" name="title[#ID#]" value="[#TITLE#]">
+     <code>[#TITLE#]</code>[#if READONLY="1"#]<span class="gree-badge">чтение</span>[#endif#]
+     [#if LABEL!=""#]<small>[#LABEL#]</small>[#endif#]
+    </td>
+    <td class="gree-table__value">[#VALUE_TEXT#]</td>
+    <td><input type="text" name="linked_object[#ID#]" id="linked_object[#ID#]" value="[#LINKED_OBJECT#]" placeholder="Объект"></td>
+    <td><input type="text" name="linked_property[#ID#]" id="linked_property[#ID#]" value="[#LINKED_PROPERTY#]" placeholder="Свойство"></td>
+    <td><input type="text" name="linked_method[#ID#]" id="linked_method[#ID#]" value="[#LINKED_METHOD#]" placeholder="Метод"></td>
+    [#module name="linkedobject" object_field="linked_object<#PROPERTIES.ID#>" property_field="linked_property<#PROPERTIES.ID#>" method_field="linked_method<#PROPERTIES.ID#>" width="200"#]
+    <td class="gree-table__act">
+     <a href="?data_source=<#DATA_SOURCE#>&id=<#ID#>&tab=<#TAB#>&view_mode=<#VIEW_MODE#>&delete_id=[#ID#]" onclick="return confirm('Удалить свойство и его привязку?');" class="gree-icon-btn gree-icon-btn--danger" title="Удалить свойство"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></a>
+    </td>
+   </tr>
+  [#end PROPERTIES#]
+  </tbody>
+ </table>
+ </div>
+ [#else PROPERTIES#]
+ <div class="gree-empty gree-empty--inline">
+  <p>Свойства появятся после первого успешного опроса кондиционера. Проверьте вкладку «Подключение» и нажмите «Обновить» на пульте.</p>
+ </div>
+ [#endif PROPERTIES#]
+ <div class="gree-panel__foot">
+  <div class="gree-input-group gree-input-group--narrow">
+   <input type="text" name="title_new" id="title_new" value="" placeholder="Добавить свойство вручную, например indoorTemperature">
+  </div>
+ </div>
+</div>
+
+<div class="gree-actions">
+ <button type="submit" name="subm" value="Submit" class="gree-btn gree-btn--primary gree-btn--lg">Сохранить привязки</button>
+ <a href="?data_source=<#DATA_SOURCE#>" class="gree-btn gree-btn--ghost gree-btn--lg">К списку</a>
+</div>
+<input type="hidden" name="id" value="<#ID#>">
+<input type="hidden" name="view_mode" value="<#VIEW_MODE#>">
+<input type="hidden" name="edit_mode" value="<#EDIT_MODE#>">
+<input type="hidden" name="mode" value="update">
+<input type="hidden" name="data_source" value="<#DATA_SOURCE#>">
+<input type="hidden" name="tab" value="<#TAB#>">
+<input type="hidden" name="page" value="<#PAGE#>">
+</form>

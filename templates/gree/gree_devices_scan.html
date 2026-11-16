@@ -1,0 +1,49 @@
+<!-- network scan -->
+<header class="gree-head">
+ <div class="gree-head__text">
+  <a class="gree-back" href="?view_mode="><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>GREE</a>
+  <h2 class="gree-title">Поиск в сети</h2>
+  <p class="gree-subtitle">Широковещательный запрос в локальную подсеть, порты UDP 7000 и 12414</p>
+ </div>
+ <div class="gree-head__actions">
+  <a href="?view_mode=gree_devices_scan" class="gree-btn gree-btn--primary">
+   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4M4 13a8 8 0 0 0 14.9 4M4 4v5h5M20 20v-5h-5"/></svg>Искать снова
+  </a>
+ </div>
+</header>
+
+[#if RESULT#]
+<div class="gree-list">
+[#begin RESULT#]
+ <div class="gree-found">
+  <div class="gree-card__icon"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="9" rx="2.5"/><path d="M6 11h12M8 17.5c0 1 .8 1.5 1.5 1.5M12 17v2.5M16 17.5c0 1-.8 1.5-1.5 1.5"/></svg></div>
+  <div class="gree-found__main">
+   <b>[#if NAME!=""#][#NAME#][#else#]Без имени[#endif#]</b>
+   <span>[#if TYPE="CH"#]Cooper&amp;Hunter Smart Wi-Fi[#else#]Gree Wi-Fi[#endif#] · [#HOST#] · <code>[#MAC#]</code>
+   [#if ENCRYPTION="GCM"#]<span class="gree-badge">протокол v2</span>[#endif#]
+   [#if TYPE="Gree"#][#if KEYS=""#]<span class="gree-badge gree-badge--warn">ключ не получен</span>[#endif#][#endif#]</span>
+  </div>
+  <div class="gree-found__act">
+   [#if KNOWN_ID#]
+   <a href="?view_mode=edit_gree_devices&id=[#KNOWN_ID#]&tab=control" class="gree-btn">Уже добавлен · открыть</a>
+   [#else KNOWN_ID#]
+   [#if "<#ACTION#>"=="admin"#]
+   <a href="?view_mode=edit_gree_devices&mode=add_from_scan&mac=[#MAC#]&devtype=[#DEVTYPE#]&type=[#TYPE#]&ip=[#HOST#]&title=[#NAME_URL#]&keys64=[#KEYS64#]&encryption=[#ENCRYPTION#]" class="gree-btn gree-btn--primary">Добавить</a>
+   [#endif ACTION#]
+   [#endif KNOWN_ID#]
+  </div>
+ </div>
+[#end RESULT#]
+</div>
+[#else RESULT#]
+<section class="gree-empty">
+ <div class="gree-empty__art"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+ <h3>Кондиционеры не найдены</h3>
+ <ul class="gree-checklist">
+  <li>Кондиционер включён в розетку и подключён к Wi-Fi.</li>
+  <li>MajorDoMo и кондиционер в одной подсети: гостевая сеть и изоляция клиентов на точке доступа блокируют поиск.</li>
+  <li>Если адрес известен, добавьте кондиционер вручную и нажмите «Получить ключ».</li>
+ </ul>
+ <a href="?view_mode=edit_gree_devices" class="gree-btn gree-btn--lg">Добавить вручную</a>
+</section>
+[#endif RESULT#]

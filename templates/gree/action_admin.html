@@ -1,0 +1,16 @@
+<link rel="stylesheet" href="<#ROOTHTML#>templates/gree/gree.css?v=1.0.0">
+<div class="gree" id="gree-app" data-api="?gree_op=">
+[#if DATA_SOURCE="gree_devices" || DATA_SOURCE=""#]
+ [#if VIEW_MODE="search_gree_devices" || VIEW_MODE=""#]
+  [#inc gree_devices_search_admin.html#]
+ [#endif VIEW_MODE#]
+ [#if VIEW_MODE="edit_gree_devices"#]
+  [#inc gree_devices_edit.html#]
+ [#endif VIEW_MODE#]
+[#endif DATA_SOURCE#]
+[#if VIEW_MODE="gree_devices_scan"#]
+ [#inc gree_devices_scan.html#]
+[#endif VIEW_MODE#]
+<div class="gree-toast" id="gree-toast" role="status" aria-live="polite"></div>
+</div>
+<script src="<#ROOTHTML#>templates/gree/gree.js?v=1.0.0"></script>

@@ -1,0 +1,99 @@
+<!-- connection settings -->
+<form action="?" method="post" enctype="multipart/form-data" name="frmEdit" class="gree-form" id="gree-settings" autocomplete="off">
+[#if OK#]<div class="gree-alert gree-alert--ok">Настройки сохранены.</div>[#endif OK#]
+[#if ERR#]<div class="gree-alert gree-alert--bad">Заполните отмеченные поля.</div>[#endif ERR#]
+
+<div class="gree-panel">
+ <h3 class="gree-panel__title">Устройство</h3>
+
+ <div class="gree-field[#if ERR_TITLE#] is-invalid[#endif#]">
+  <label for="gree-f-title">Название</label>
+  <input type="text" name="title" id="gree-f-title" value="[#TITLE#]" placeholder="Например, Кондиционер в спальне" required>
+ </div>
+
+ <div class="gree-field[#if ERR_TYPE#] is-invalid[#endif#]">
+  <span class="gree-field__label">Тип контроллера</span>
+  <div class="gree-seg">
+   <label><input type="radio" name="type" value="Gree"[#if TYPE_GREE_SELECTED#] checked[#endif#]><span>Gree Wi-Fi</span></label>
+   <label><input type="radio" name="type" value="CH"[#if TYPE_CH_SELECTED#] checked[#endif#]><span>Cooper&amp;Hunter Smart Wi-Fi</span></label>
+  </div>
+  <p class="gree-hint">Большинство кондиционеров Cooper&amp;Hunter работают через модуль Gree: выбирайте «Gree Wi-Fi», если устройство нашлось при поиске с этим типом.</p>
+ </div>
+</div>
+
+<div class="gree-panel">
+ <h3 class="gree-panel__title">Сеть</h3>
+ <div class="gree-row">
+  <div class="gree-field[#if ERR_IP#] is-invalid[#endif#]">
+   <label for="gree-f-ip">IP-адрес</label>
+   <input type="text" name="ip" id="gree-f-ip" value="[#IP#]" placeholder="192.168.0.50" inputmode="decimal" required>
+   <p class="gree-hint">Закрепите адрес за кондиционером в настройках роутера.</p>
+  </div>
+  <div class="gree-field">
+   <label for="gree-f-mac">MAC-адрес</label>
+   <input type="text" name="mac" id="gree-f-mac" value="[#MAC#]" placeholder="aa:bb:cc:dd:ee:ff" spellcheck="false">
+  </div>
+ </div>
+
+ <div class="gree-gree-only">
+  <div class="gree-field">
+   <label for="gree-f-keys">Ключ устройства</label>
+   <div class="gree-input-group">
+    <input type="text" name="keys" id="gree-f-keys" value="[#KEYS#]" placeholder="Получается автоматически" spellcheck="false">
+    <button type="button" class="gree-btn" data-gree-pair="[#ID#]">Получить ключ</button>
+   </div>
+   <p class="gree-hint">Модуль запрашивает ключ у кондиционера по локальной сети. Повторите запрос, если сбросили Wi-Fi на кондиционере.</p>
+  </div>
+
+  <div class="gree-field">
+   <span class="gree-field__label">Версия протокола</span>
+   <div class="gree-seg">
+    <label><input type="radio" name="encryption" value="ECB"[#if ENCRYPTION_ECB_SELECTED#] checked[#endif#]><span>v1 · AES-ECB</span></label>
+    <label><input type="radio" name="encryption" value="GCM"[#if ENCRYPTION_GCM_SELECTED#] checked[#endif#]><span>v2 · AES-GCM</span></label>
+   </div>
+   <p class="gree-hint">Определяется при получении ключа. Версия 2 у прошивок примерно с 2021 года.</p>
+  </div>
+ </div>
+</div>
+
+<div class="gree-panel">
+ <h3 class="gree-panel__title">Опрос</h3>
+ <div class="gree-field">
+  <span class="gree-field__label">Читать состояние каждые</span>
+  <div class="gree-seg gree-seg--wrap">
+   [#begin CHTIMES#]<label><input type="radio" name="chtime" value="[#CODE#]"[#if SELECTED=="1"#] checked[#endif#]><span>[#LABEL#]</span></label>[#end CHTIMES#]
+  </div>
+  <p class="gree-hint">Кондиционер сам ничего не сообщает об изменениях с пульта, поэтому модуль опрашивает его. Оптимально 20 с – 1 мин; 1 с создаёт лишнюю нагрузку на сеть.</p>
+ </div>
+
+ <details class="gree-details">
+  <summary>Служебные параметры</summary>
+  <div class="gree-row">
+   <div class="gree-field">
+    <label for="gree-f-devtype">Код типа устройства</label>
+    <input type="text" name="devtype" id="gree-f-devtype" value="[#DEVTYPE#]" placeholder="0x2711 или 0x202" spellcheck="false">
+    <p class="gree-hint">Подставляется автоматически по типу контроллера.</p>
+   </div>
+   <div class="gree-field">
+    <label>Последний ответ</label>
+    <input type="text" value="[#if UPDATED_DATE!=""#][#UPDATED_DATE#][#else#]нет данных[#endif#]" disabled>
+   </div>
+  </div>
+ </details>
+</div>
+
+<div class="gree-actions">
+ [#if ID!=""#]
+ <button type="submit" name="subm" value="Submit" class="gree-btn gree-btn--primary gree-btn--lg">Сохранить</button>
+ [#else ID#]
+ <button type="submit" name="subm" value="Add" class="gree-btn gree-btn--primary gree-btn--lg">Добавить</button>
+ [#endif ID#]
+ <a href="?data_source=<#DATA_SOURCE#>" class="gree-btn gree-btn--ghost gree-btn--lg">Отмена</a>
+</div>
+<input type="hidden" name="id" value="<#ID#>">
+<input type="hidden" name="view_mode" value="<#VIEW_MODE#>">
+<input type="hidden" name="edit_mode" value="<#EDIT_MODE#>">
+<input type="hidden" name="mode" value="update">
+<input type="hidden" name="data_source" value="<#DATA_SOURCE#>">
+<input type="hidden" name="tab" value="<#TAB#>">
+</form>

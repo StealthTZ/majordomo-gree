@@ -1,0 +1,37 @@
+<!-- device page -->
+<header class="gree-head">
+ <div class="gree-head__text">
+  <a class="gree-back" href="?data_source=<#DATA_SOURCE#>"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>GREE</a>
+  <h2 class="gree-title">[#if ID!=""#][#TITLE#][#else#]Новый кондиционер[#endif#]</h2>
+  [#if ID!=""#]<p class="gree-subtitle">[#if TYPE="CH"#]Cooper&amp;Hunter Smart Wi-Fi[#else#][#TYPE#][#endif#] · [#IP#] · [#MAC#]</p>[#endif#]
+ </div>
+</header>
+
+[#if ID!=""#]
+<nav class="gree-tabs" role="tablist">
+ <a href="?data_source=<#DATA_SOURCE#>&view_mode=<#VIEW_MODE#>&id=<#ID#>&tab=control" class="gree-tab[#if TAB="control"#] is-active[#endif#]">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="3"/><circle cx="12" cy="8" r="1.6"/><path d="M10 13h4M10 16.5h4"/></svg>Пульт</a>
+ <a href="?data_source=<#DATA_SOURCE#>&view_mode=<#VIEW_MODE#>&id=<#ID#>&tab=" class="gree-tab[#if TAB=""#] is-active[#endif#]">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Подключение</a>
+ <a href="?data_source=<#DATA_SOURCE#>&view_mode=<#VIEW_MODE#>&id=<#ID#>&tab=data" class="gree-tab[#if TAB="data"#] is-active[#endif#]">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Привязки к объектам</a>
+</nav>
+[#endif ID#]
+
+[#if TAB="control"#]
+ [#if ID!=""#]
+ <section class="gree-remote" id="gree-remote" data-id="[#ID#]">
+  <div class="gree-loading">Загрузка…</div>
+ </section>
+ <script type="application/json" id="gree-state">[#STATE_JSON#]</script>
+ <a id="gree-settings-link" href="?data_source=<#DATA_SOURCE#>&view_mode=<#VIEW_MODE#>&id=<#ID#>&tab=" hidden></a>
+ [#endif ID#]
+[#endif TAB#]
+
+[#if TAB=""#]
+ [#inc gree_devices_edit_settings.html#]
+[#endif TAB#]
+
+[#if TAB="data"#]
+ [#inc gree_devices_edit_links.html#]
+[#endif TAB#]
