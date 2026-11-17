@@ -4,9 +4,9 @@
 тепловыми насосами Gree и Cooper&Hunter по локальной сети, без облака
 производителя.
 
-![Список кондиционеров](docs/screen-list.png)
+![Список кондиционеров](modules/gree/docs/screen-list.png)
 
-![Пульт](docs/screen-remote.png)
+![Пульт](modules/gree/docs/screen-remote.png)
 
 ## Возможности
 
@@ -35,21 +35,24 @@
 
 ## Установка из интерфейса MajorDoMo
 
-1. Скачайте `gree.tgz` со страницы релизов или соберите его: `sh build-package.sh`.
+1. Скачайте `gree.tgz` со [страницы релизов](https://github.com/StealthTZ/majordomo-gree/releases/latest).
 2. Панель управления → **Маркет дополнений** → **Добавить/обновить вручную**.
 3. Выберите файл `gree.tgz` и нажмите **Загрузить и установить**.
 
 Обновление ставится так же, поверх установленной версии.
 
-## Установка из консоли
+## Установка вручную
+
+Скопируйте каталоги `modules`, `templates`, `img` и `scripts` из репозитория в
+корень MajorDoMo с сохранением структуры, например:
 
 ```
-sudo sh install-gree.sh                     # корень MajorDoMo ищется автоматически
-sudo sh install-gree.sh /var/www/majordomo  # или указать его явно
+sudo cp -r modules templates img scripts /var/www/html/
 ```
 
-Скрипт сохраняет резервную копию установленной версии, копирует файлы, выставляет
-владельца и права как у остальных файлов MajorDoMo и проверяет синтаксис.
+Все файлы модуля лежат в его собственных каталогах: `modules/gree`,
+`templates/gree`, `img/modules/gree.png`, `scripts/cycle_gree.php`. Файлы в корне
+системы модуль не создаёт и не меняет.
 
 ## Начало работы
 
@@ -116,3 +119,6 @@ sudo sh install-gree.sh /var/www/majordomo  # или указать его яв�
 
 - [tomikaa87/gree-remote](https://github.com/tomikaa87/gree-remote)
 - [cmroche/greeclimate](https://github.com/cmroche/greeclimate)
+
+История изменений: [modules/gree/CHANGELOG.md](modules/gree/CHANGELOG.md).
+Лицензия: MIT, [modules/gree/LICENSE](modules/gree/LICENSE).
